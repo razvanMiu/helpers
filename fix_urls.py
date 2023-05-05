@@ -4,8 +4,15 @@ import pyperclip
 from credentials import credentials
 
 
-host = "https://climate-advisory-board.europa.eu"
-old_host = "https://demo-climate-advisory-board.devel4cph.eea.europa.eu"
+host = "https://demo-biodiversity.devel5cph.eea.europa.eu"
+
+old_hosts = [
+    'http://localhost:8080',
+    'http://backend:8080',
+    'http://backend:6081',
+    "https://biodiversity.europa.eu/api",
+    "https://biodiversity.europa.eu",
+]
 
 # Authentication step
 
@@ -55,8 +62,9 @@ if not items:
                 {
                     "i": "portal_type",
                     "o": "plone.app.querystring.operation.selection.any",
-                    # "v": ["Plone Site", 'Document', 'News Item', 'report', 'member'],
-                    "v": ["Plone Site", "Document"],
+                    # "v": ["Document"],
+                    "v": ["Plone Site"],
+                    # "v": ["bise_factsheet", "Folder"]
                 }
             ]
         },
@@ -84,10 +92,16 @@ for item in items:
     )
     data = contentRequest.json()
     blocks = json.dumps(data["blocks"])
-    occurrences = blocks.count(old_host)
+    occurrences = 0
 
+    for old_host in old_hosts:
+        current_occurrences = blocks.count(old_host)
+
+        if current_occurrences > 0:
+            blocks = blocks.replace(old_host, "")
+            occurrences += current_occurrences
+            
     if occurrences > 0:
-        blocks = blocks.replace(old_host, "")
         patch = requests.patch(
             url,
             headers={
@@ -98,6 +112,5 @@ for item in items:
             json={"blocks": json.loads(blocks)},
         )
         print(item['@id'] + ' patched ' + str(occurrences) + " occurrences " + patch.text)
-        # print(item['@id'] + ' patched ' + str(occurrences) + " occurrences ")
     else:
         print(item['@id'] + ' nothing to patch')
