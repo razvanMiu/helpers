@@ -27,7 +27,10 @@ export default function DashboardFixer() {
       onChange: () => {
         debounce(
           () => {
-            setData(editor.get().data);
+            const data = editor.get().data;
+            if (data) {
+              setData(data);
+            }
           },
           200,
           "jsoneditor:onChange"
@@ -122,7 +125,7 @@ export default function DashboardFixer() {
   }
 
   return (
-    <div class="dashboard-fixer grid grid-cols-2 gap-x-4">
+    <div class="dashboard-fixer grid grid-cols-[2fr_1fr] gap-x-8">
       <div class="dashboard-fixer__content">
         <h2 class="text-2xl mb-2">Dashboard fixer</h2>
         <div class="mb-2">
