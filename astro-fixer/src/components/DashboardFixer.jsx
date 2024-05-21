@@ -1,6 +1,6 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
-import { fixHost } from "../helpers";
+import { debounce, fixHost } from "../helpers";
 
 const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
 
@@ -9,6 +9,7 @@ const parser = typeof window !== "undefined" && new DOMParser();
 const defaultDissaAllowedProperties = ["image", "embed", "temporalCoverage"];
 
 export default function DashboardFixer() {
+  const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
   const [properties, setProperties] = createSignal({
@@ -18,6 +19,26 @@ export default function DashboardFixer() {
     defaultDissaAllowedProperties
   );
   const [error, setError] = createSignal({});
+  let jsoneditorEl;
+
+  onMount(() => {
+    if (typeof window === "undefined") return;
+    const editor = new window.JSONEditor(jsoneditorEl, {
+      onChange: () => {
+        debounce(
+          () => {
+            setData(editor.get().data);
+          },
+          200,
+          "jsoneditor:onChange"
+        );
+      },
+    });
+    editor.set({
+      data: data(),
+    });
+    setEditor(editor);
+  });
 
   function fixData() {
     if (fixed()) return;
@@ -48,7 +69,7 @@ export default function DashboardFixer() {
         params[name] = value;
       }
       // Get sheetname
-      const [, sheetname] = params["name"].split("/");
+      const [, sheetname] = params["name"]?.split("/") || [];
       // Update item
       item["@type"];
       item["tableau_visualization"] = {
@@ -76,10 +97,11 @@ export default function DashboardFixer() {
       newData.push(item);
     });
 
+    editor().set({
+      data: newData,
+    });
     setData(newData);
     setFixed(true);
-
-    console.log(disallowedProperties());
   }
 
   function download() {
@@ -100,7 +122,7 @@ export default function DashboardFixer() {
   }
 
   return (
-    <div class="dashboard-fixer grid grid-cols-2">
+    <div class="dashboard-fixer grid grid-cols-2 gap-x-4">
       <div class="dashboard-fixer__content">
         <h2 class="text-2xl mb-2">Dashboard fixer</h2>
         <div class="mb-2">
@@ -113,6 +135,9 @@ export default function DashboardFixer() {
               const reader = new FileReader();
               reader.onload = (event) => {
                 const data = JSON.parse(event.target.result);
+                editor().set({
+                  data,
+                });
                 setData(data);
                 setFixed(false);
                 if (data.length) {
@@ -147,6 +172,7 @@ export default function DashboardFixer() {
         </div>
         {error().message && <p class="text-red-500">{error().message}</p>}
         {fixed() && <p class="text-green-500">Ready to download</p>}
+        <div ref={jsoneditorEl} id="jsoneditor" class="h-[700px]" />
       </div>
       <div class="dashboard-fixer__properties">
         <div class="mb-4">
@@ -180,7 +206,7 @@ export default function DashboardFixer() {
                 }}
               >
                 Unselect all
-              </button>
+              </button>{" "}
               |{" "}
               <button
                 onClick={() => {
