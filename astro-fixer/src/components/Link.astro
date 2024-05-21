@@ -1,0 +1,17 @@
+---
+import cx from 'classnames';
+
+const pathname = Astro.url.pathname
+const { href } = Astro.props;
+const isActive = pathname === href;
+---
+<a 
+  class={
+    cx('hover:underline', {
+      'text-blue-400': isActive,
+    })
+  }
+  href={href}
+>
+  <slot />
+</a>

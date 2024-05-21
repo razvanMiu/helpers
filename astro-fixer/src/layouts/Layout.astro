@@ -1,5 +1,7 @@
 ---
 import { ViewTransitions } from 'astro:transitions';
+
+import Link from '../components/Link.astro';
 ---
 
 <html lang="en">
@@ -12,10 +14,14 @@ import { ViewTransitions } from 'astro:transitions';
 		<title>Astro fixer</title>
     <ViewTransitions />
 	</head>
-	<body class="bg-blue-950 text-white">
-    <nav class="flex gap-x-2 p-4">
-      <a href="/">Home</a>
-      <a href="/dashboard-fixer">Dashboard fixer</a>
+	<body class="bg-gray-800 text-white">
+    <nav class="flex gap-x-6 p-6">
+      <Link href="/eeafigure-graph">EEAFigure (graph)</Link>
+      <Link href="/eeafigure-map">EEAFigure (map)</Link>
+			<Link href="/daviz-visualization">DavizVisualization</Link>
+			<Link href="/gis-map-application">GIS map application</Link>
+      <Link href="/dashboard">Dashboard</Link>
+      <Link href="/infographic">Infographic</Link>
     </nav>
     <main class="p-4">
       <slot />
