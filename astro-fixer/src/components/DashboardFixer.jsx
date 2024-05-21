@@ -128,6 +128,7 @@ export default function DashboardFixer() {
           </button>
         </div>
         {error().message && <p class="text-red-500">{error().message}</p>}
+        {fixed() && <p class="text-green-500">Ready to download</p>}
       </div>
       <div class="dashboard-fixer__properties">
         <h2 class="text-2xl mb-2">Properties</h2>
