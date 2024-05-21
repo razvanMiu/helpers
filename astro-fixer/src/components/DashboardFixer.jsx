@@ -1,9 +1,12 @@
 import { createSignal } from "solid-js";
+import cx from "classnames";
 import { fixHost } from "../helpers";
 
 const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
 
 const parser = typeof window !== "undefined" && new DOMParser();
+
+const defaultDissaAllowedProperties = ["image", "embed", "temporalCoverage"];
 
 export default function DashboardFixer() {
   const [fixed, setFixed] = createSignal(false);
@@ -11,6 +14,9 @@ export default function DashboardFixer() {
   const [properties, setProperties] = createSignal({
     host: "",
   });
+  const [disallowedProperties, setDisallowedProperties] = createSignal(
+    defaultDissaAllowedProperties
+  );
   const [error, setError] = createSignal({});
 
   function fixData() {
@@ -65,15 +71,15 @@ export default function DashboardFixer() {
         return acc;
       }, {});
 
-      delete item.embed;
-      delete item.image;
-      delete item.temporalCoverage;
+      disallowedProperties().forEach((key) => delete item[key]);
 
       newData.push(item);
     });
 
     setData(newData);
     setFixed(true);
+
+    console.log(disallowedProperties());
   }
 
   function download() {
@@ -120,10 +126,22 @@ export default function DashboardFixer() {
           />
         </div>
         <div class="mb-2 flex gap-x-4">
-          <button class="bg-white text-black px-10" onClick={fixData}>
+          <button
+            class={cx("bg-white text-black px-10", {
+              "opacity-50": !data().length || fixed(),
+            })}
+            onClick={fixData}
+            disabled={!data().length || fixed()}
+          >
             Fix
           </button>
-          <button class="bg-white text-black px-10" onClick={download}>
+          <button
+            class={cx("bg-white text-black px-10", {
+              "opacity-50": !fixed(),
+            })}
+            onClick={download}
+            disabled={!fixed()}
+          >
             Download
           </button>
         </div>
@@ -131,17 +149,75 @@ export default function DashboardFixer() {
         {fixed() && <p class="text-green-500">Ready to download</p>}
       </div>
       <div class="dashboard-fixer__properties">
-        <h2 class="text-2xl mb-2">Properties</h2>
-        <label class="mr-2" for="host">
-          Host
-        </label>
-        <input
-          class="text-black"
-          type="text"
-          name="host"
-          value={properties().host}
-          onChange={(event) => setProperties({ host: event.target.value })}
-        />
+        <div class="mb-4">
+          <h2 class="text-2xl mb-2">Editable properties</h2>
+          <label class="mr-2" for="host">
+            Host
+          </label>
+          <input
+            class="text-black"
+            type="text"
+            name="host"
+            value={properties().host}
+            onChange={(event) => setProperties({ host: event.target.value })}
+          />
+        </div>
+        {!!data().length && !fixed() && (
+          <div class="mb-4">
+            <h2 class="text-2xl mb-2">Disallowed properties</h2>
+            <div class="mb-2">
+              <button
+                onClick={() => {
+                  setDisallowedProperties(Object.keys(data()[0]));
+                }}
+              >
+                Select all
+              </button>{" "}
+              |{" "}
+              <button
+                onClick={() => {
+                  setDisallowedProperties([]);
+                }}
+              >
+                Unselect all
+              </button>
+              |{" "}
+              <button
+                onClick={() => {
+                  setDisallowedProperties(defaultDissaAllowedProperties);
+                }}
+              >
+                Select defaults
+              </button>
+            </div>
+            {Object.keys(data()[0]).map((key) => (
+              <>
+                <p>
+                  <input
+                    class="mr-2"
+                    type="checkbox"
+                    id={key}
+                    name={key}
+                    checked={disallowedProperties().includes(key)}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setDisallowedProperties((properties) => [
+                          ...properties,
+                          key,
+                        ]);
+                      } else {
+                        setDisallowedProperties((properties) =>
+                          properties.filter((item) => item !== key)
+                        );
+                      }
+                    }}
+                  />
+                  {key}
+                </p>
+              </>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
