@@ -1,0 +1,23 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro fixer</title>
+    <ViewTransitions />
+	</head>
+	<body class="bg-blue-950 text-white">
+    <nav class="flex gap-x-2 p-4">
+      <a href="/">Home</a>
+      <a href="/dashboard-fixer">Dashboard fixer</a>
+    </nav>
+    <main class="p-4">
+      <slot />
+    </main>
+	</body>
+</html>
