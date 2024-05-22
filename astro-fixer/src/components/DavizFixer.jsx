@@ -1,17 +1,25 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixHost, fixTemporalCoverage } from "../helpers";
+import {
+  debounce,
+  fixTemporalCoverage,
+  proxyFetch,
+  convertBlobToBase64,
+} from "../helpers";
 
-const defaultDisallowedProperties = ["image", "embed", "temporalCoverage"];
+const defaultDisallowedProperties = [
+  "image",
+  "embed",
+  "temporalCoverage",
+  "spreadsheet",
+];
 
 export default function DavizFixer() {
   const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
-  const [properties, setProperties] = createSignal({
-    host: "",
-  });
+  const [files, setFiles] = createSignal({});
   const [disallowedProperties, setDisallowedProperties] = createSignal(
     defaultDisallowedProperties
   );
@@ -40,7 +48,7 @@ export default function DavizFixer() {
     setEditor(editor);
   });
 
-  function fixData() {
+  async function fixData() {
     if (fixed()) return;
     if (!data().length) {
       setError({ message: "No data to fix" });
@@ -50,22 +58,65 @@ export default function DavizFixer() {
 
     const newData = [];
 
-    data().forEach((item) => {
-      const host = item["@id"].split("/").slice(0, 5).join("/");
+    for (const item of data()) {
       // Update properties
-      item = fixHost(item, host, properties().host);
-      if (item["@type"] !== "Infographic") {
-        newData.push(item);
+      if (item["@type"] !== "DavizVisualization") {
         return;
       }
-      item["@type"] = "infographic";
-      item["preview_image"] = item["image"];
+      const url = new URL(item["@id"]);
+
+      const chartsResponse = await proxyFetch(
+        url.origin + "/api/SITE" + url.pathname + "/@charts",
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+      const csvResponse = await proxyFetch(
+        url.origin + "/api/SITE" + url.pathname + "/download.csv",
+        {
+          headers: {
+            Accept: "text/csv; charset=utf-8",
+          },
+        }
+      );
+
+      const charts = chartsResponse.ok ? await chartsResponse.json() : {};
+      const csvFile = csvResponse.ok ? await csvResponse.blob() : null;
+      const csvBase64 = csvFile && (await convertBlobToBase64(csvFile));
+
+      const chartId = charts.items?.reduce((acc, item) => {
+        if (item.title === "Chart") {
+          acc = item.name;
+        }
+        return acc;
+      }, "");
+
+      let chart = files()[item["UID"]]?.reduce((acc, item) => {
+        const [id, ext] = item["id"].split(".");
+        if (id === chartId) {
+          acc[ext] = item;
+        }
+        return acc;
+      }, {});
+      chart = chart.svg || chart.png || chart.jpeg || chart.jpg;
+
+      // Update item
+      item["@type"] = "chart_static";
+      item["preview_image"] = chart?.file;
+      item["file"] = {
+        data: csvBase64,
+        filename: null,
+        encoding: "base64",
+        "content-type": "text/csv",
+      };
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
 
       disallowedProperties().forEach((key) => delete item[key]);
 
       newData.push(item);
-    });
+    }
 
     editor().set({
       data: newData,
@@ -94,7 +145,7 @@ export default function DavizFixer() {
   return (
     <div class="dashboard-fixer grid grid-cols-[2fr_1fr] gap-x-8">
       <div class="dashboard-fixer__content">
-        <h2 class="text-2xl mb-2">Daviz</h2>
+        <h2 class="text-2xl mb-2">Dashboard</h2>
         <div class="mb-2">
           <input
             type="file"
@@ -104,17 +155,29 @@ export default function DavizFixer() {
             onChange={(event) => {
               const reader = new FileReader();
               reader.onload = (event) => {
-                const data = JSON.parse(event.target.result);
+                const result = JSON.parse(event.target.result);
+                const data = [];
+                const files = {};
+
+                for (const item of result) {
+                  if (item["@type"] === "DavizVisualization") {
+                    data.push(item);
+                  }
+                  if (["File", "Image"].includes(item["@type"])) {
+                    const parentUid = item["parent"]?.["UID"];
+                    if (parentUid && !files[parentUid]) {
+                      files[parentUid] = [];
+                    }
+                    files[parentUid].push(item);
+                  }
+                }
+
                 editor().set({
                   data,
                 });
                 setData(data);
+                setFiles(files);
                 setFixed(false);
-                if (data.length) {
-                  setProperties({
-                    host: data[0]["@id"].split("/").slice(0, 5).join("/"),
-                  });
-                }
               };
               reader.readAsText(event.target.files[0]);
             }}
@@ -145,19 +208,6 @@ export default function DavizFixer() {
         <div ref={jsoneditorEl} id="jsoneditor" class="h-[700px]" />
       </div>
       <div class="dashboard-fixer__properties">
-        <div class="mb-4">
-          <h2 class="text-2xl mb-2">Editable properties</h2>
-          <label class="mr-2" for="host">
-            Host
-          </label>
-          <input
-            class="text-black"
-            type="text"
-            name="host"
-            value={properties().host}
-            onChange={(event) => setProperties({ host: event.target.value })}
-          />
-        </div>
         {!!data().length && !fixed() && (
           <div class="mb-4">
             <h2 class="text-2xl mb-2">Disallowed properties</h2>
@@ -218,5 +268,3 @@ export default function DavizFixer() {
     </div>
   );
 }
-
-// /_next/image?url=https%3A%2F%2Fprod.admin.idralliance.global%2Fdownload%2Ffile%2F34581467-18a3-43b1-8fc2-3fdef05734c7%3Ffilename%3DPT.svg%26changed%3D1715767961000&w=256&q=75

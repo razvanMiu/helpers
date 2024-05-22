@@ -1,7 +1,7 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixHost, fixTemporalCoverage } from "../helpers";
+import { debounce, fixTemporalCoverage } from "../helpers";
 
 const defaultDisallowedProperties = ["image", "temporalCoverage", "arcgis_url"];
 
@@ -9,9 +9,6 @@ export default function GISMapFixer() {
   const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
-  const [properties, setProperties] = createSignal({
-    host: "",
-  });
   const [disallowedProperties, setDisallowedProperties] = createSignal(
     defaultDisallowedProperties
   );
@@ -51,11 +48,8 @@ export default function GISMapFixer() {
     const newData = [];
 
     data().forEach((item) => {
-      const host = item["@id"].split("/").slice(0, 5).join("/");
       // Update properties
-      item = fixHost(item, host, properties().host);
       if (item["@type"] !== "GIS Application") {
-        newData.push(item);
         return;
       }
       item["@type"] = "map_interactive";
@@ -114,11 +108,6 @@ export default function GISMapFixer() {
                 });
                 setData(data);
                 setFixed(false);
-                if (data.length) {
-                  setProperties({
-                    host: data[0]["@id"].split("/").slice(0, 5).join("/"),
-                  });
-                }
               };
               reader.readAsText(event.target.files[0]);
             }}
@@ -149,19 +138,6 @@ export default function GISMapFixer() {
         <div ref={jsoneditorEl} id="jsoneditor" class="h-[700px]" />
       </div>
       <div class="dashboard-fixer__properties">
-        <div class="mb-4">
-          <h2 class="text-2xl mb-2">Editable properties</h2>
-          <label class="mr-2" for="host">
-            Host
-          </label>
-          <input
-            class="text-black"
-            type="text"
-            name="host"
-            value={properties().host}
-            onChange={(event) => setProperties({ host: event.target.value })}
-          />
-        </div>
         {!!data().length && !fixed() && (
           <div class="mb-4">
             <h2 class="text-2xl mb-2">Disallowed properties</h2>

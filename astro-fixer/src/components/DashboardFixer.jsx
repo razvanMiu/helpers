@@ -1,7 +1,7 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixHost, fixTemporalCoverage } from "../helpers";
+import { debounce, fixTemporalCoverage } from "../helpers";
 
 const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
 
@@ -9,16 +9,10 @@ const parser = typeof window !== "undefined" && new DOMParser();
 
 const defaultDisallowedProperties = ["image", "embed", "temporalCoverage"];
 
-// 200ms - 400ms
-// Min 16m
-
 export default function DashboardFixer() {
   const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
-  const [properties, setProperties] = createSignal({
-    host: "",
-  });
   const [disallowedProperties, setDisallowedProperties] = createSignal(
     defaultDisallowedProperties
   );
@@ -58,11 +52,7 @@ export default function DashboardFixer() {
     const newData = [];
 
     data().forEach((item) => {
-      const host = item["@id"].split("/").slice(0, 5).join("/");
-      // Update properties
-      item = fixHost(item, host, properties().host);
       if (item["@type"] !== "Dashboard") {
-        newData.push(item);
         return;
       }
       const dashboardWindow = parser.parseFromString(item.embed, "text/html");
@@ -87,6 +77,7 @@ export default function DashboardFixer() {
         toolbarPosition: "Top",
         sheetname,
       };
+      item["preview_image"] = item["image"];
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
 
       disallowedProperties().forEach((key) => delete item[key]);
@@ -137,11 +128,6 @@ export default function DashboardFixer() {
                 });
                 setData(data);
                 setFixed(false);
-                if (data.length) {
-                  setProperties({
-                    host: data[0]["@id"].split("/").slice(0, 5).join("/"),
-                  });
-                }
               };
               reader.readAsText(event.target.files[0]);
             }}
@@ -172,19 +158,6 @@ export default function DashboardFixer() {
         <div ref={jsoneditorEl} id="jsoneditor" class="h-[700px]" />
       </div>
       <div class="dashboard-fixer__properties">
-        <div class="mb-4">
-          <h2 class="text-2xl mb-2">Editable properties</h2>
-          <label class="mr-2" for="host">
-            Host
-          </label>
-          <input
-            class="text-black"
-            type="text"
-            name="host"
-            value={properties().host}
-            onChange={(event) => setProperties({ host: event.target.value })}
-          />
-        </div>
         {!!data().length && !fixed() && (
           <div class="mb-4">
             <h2 class="text-2xl mb-2">Disallowed properties</h2>
