@@ -1,4 +1,7 @@
 ---
-return Astro.redirect('/dashboard')
+import Layout from "../layouts/Layout.astro"
+
+return Astro.redirect("/dashboard", 301)
 ---
 
+<Layout />

@@ -1,8 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Fixer from '../components/InfographicFixer';
 
+import "jsoneditor/dist/jsoneditor.min.css";
+
+export const prerender = false
 ---
 
 <Layout>
-  <h2 class="text-2xl mb-2">Infographic</h2>
+  <Fixer client:load />
 </Layout>

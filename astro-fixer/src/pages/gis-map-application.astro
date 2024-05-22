@@ -1,8 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Fixer from '../components/GISMapFixer';
 
+import "jsoneditor/dist/jsoneditor.min.css";
+// temporalCoverage -> temporal_coverage
+// locaiton -> geographical coverage (TBD)
+// themes -> topics (TBD)
 ---
 
 <Layout>
-  <h2 class="text-2xl mb-2">GIS map application</h2>
+  <Fixer client:load />
 </Layout>

@@ -1,8 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Fixer from "../components/DavizFixer";
 
+import "jsoneditor/dist/jsoneditor.min.css";
+// charts -> /@charts
+// csv -> /download.csv
 ---
 
 <Layout>
-  <h2 class="text-2xl mb-2">Daviz visualization</h2>
+  <Fixer client:load />
 </Layout>

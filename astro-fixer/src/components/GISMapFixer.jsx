@@ -3,16 +3,9 @@ import cx from "classnames";
 
 import { debounce, fixHost, fixTemporalCoverage } from "../helpers";
 
-const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
+const defaultDisallowedProperties = ["image", "temporalCoverage", "arcgis_url"];
 
-const parser = typeof window !== "undefined" && new DOMParser();
-
-const defaultDisallowedProperties = ["image", "embed", "temporalCoverage"];
-
-// 200ms - 400ms
-// Min 16m
-
-export default function DashboardFixer() {
+export default function GISMapFixer() {
   const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
@@ -61,32 +54,16 @@ export default function DashboardFixer() {
       const host = item["@id"].split("/").slice(0, 5).join("/");
       // Update properties
       item = fixHost(item, host, properties().host);
-      if (item["@type"] !== "Dashboard") {
+      if (item["@type"] !== "GIS Application") {
         newData.push(item);
         return;
       }
-      const dashboardWindow = parser.parseFromString(item.embed, "text/html");
-      // Fix tableau
-      const paramsEl = dashboardWindow.querySelectorAll("param");
-      const params = {};
-      // Get params
-      for (const param of paramsEl) {
-        const name = param.getAttribute("name");
-        const value = decodeURIComponent(param.getAttribute("value"));
-        params[name] = value;
-      }
-      // Get sheetname
-      const [, sheetname] = params["name"]?.split("/") || [];
-      // Update item
-      item["@type"] = "tableau_visualization";
-      item["tableau_visualization"] = {
-        "@id": item["@id"],
-        url: tableauHost + "/views" + `/${params["name"]}`,
-        hideTabs: params["tabs"] === "no",
-        hideToolbar: params["toolbar"] === "no",
-        toolbarPosition: "Top",
-        sheetname,
+      item["@type"] = "map_interactive";
+      item["maps"] = {
+        dataprotection: {},
+        url: item["arcgis_url"],
       };
+      item["preview_image"] = item["image"];
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
 
       disallowedProperties().forEach((key) => delete item[key]);
@@ -121,7 +98,7 @@ export default function DashboardFixer() {
   return (
     <div class="dashboard-fixer grid grid-cols-[2fr_1fr] gap-x-8">
       <div class="dashboard-fixer__content">
-        <h2 class="text-2xl mb-2">Dashboard</h2>
+        <h2 class="text-2xl mb-2">GIS map application</h2>
         <div class="mb-2">
           <input
             type="file"
