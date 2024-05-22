@@ -66,11 +66,18 @@ const images = [
   "https://prod.admin.idralliance.global/download/file/13b0c95f-c1aa-4763-af99-14bedb0296d8?filename=logo-wwf%201.png&changed=1715337749000",
 ];
 
+let req = 0;
+
 images.forEach((image, index) => {
   fetch(image).then((response) => {
+    req++;
     if (!response.ok) {
       console.error(`Image ${index + 1} failed to load.`);
       console.error(response);
+    }
+
+    if (req === images.length) {
+      console.log("All images have been checked.");
     }
   });
 });
