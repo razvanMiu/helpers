@@ -1,9 +1,8 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixTemporalCoverage } from "../helpers";
-
-const defaultDisallowedProperties = ["image", "temporalCoverage", "arcgis_url"];
+import { debounce, fixTemporalCoverage, fixTopics } from "../helpers";
+import { defaultDisallowedProperties } from "../constants";
 
 export default function GISMapFixer() {
   const [editor, setEditor] = createSignal(null);
@@ -59,6 +58,7 @@ export default function GISMapFixer() {
       };
       item["preview_image"] = item["image"];
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
+      item["topics"] = fixTopics(item, "themes");
 
       disallowedProperties().forEach((key) => delete item[key]);
 

@@ -6,14 +6,10 @@ import {
   fixTemporalCoverage,
   proxyFetch,
   convertBlobToBase64,
+  fixTopics,
 } from "../helpers";
 
-const defaultDisallowedProperties = [
-  "image",
-  "embed",
-  "temporalCoverage",
-  "spreadsheet",
-];
+import { defaultDisallowedProperties } from "../constants";
 
 export default function DavizFixer() {
   const [editor, setEditor] = createSignal(null);
@@ -112,6 +108,7 @@ export default function DavizFixer() {
         "content-type": "text/csv",
       };
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
+      item["topics"] = fixTopics(item, "themes");
 
       disallowedProperties().forEach((key) => delete item[key]);
 

@@ -1,13 +1,12 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixTemporalCoverage } from "../helpers";
+import { debounce, fixTemporalCoverage, fixTopics } from "../helpers";
+import { defaultDisallowedProperties } from "../constants";
 
 const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
 
 const parser = typeof window !== "undefined" && new DOMParser();
-
-const defaultDisallowedProperties = ["image", "embed", "temporalCoverage"];
 
 export default function DashboardFixer() {
   const [editor, setEditor] = createSignal(null);
@@ -79,6 +78,7 @@ export default function DashboardFixer() {
       };
       item["preview_image"] = item["image"];
       item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
+      item["topics"] = fixTopics(item, "themes");
 
       disallowedProperties().forEach((key) => delete item[key]);
 

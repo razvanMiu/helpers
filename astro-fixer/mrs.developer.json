@@ -1,0 +1,8 @@
+{
+  "fetch-cache": {
+    "url": "git@github.com:razvanMiu/fetch-cache.git",
+    "https": "https://github.com/razvanMiu/fetch-cache.git",
+    "branch": "main",
+    "develop": true
+  }
+}

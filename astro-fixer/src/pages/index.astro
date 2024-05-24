@@ -1,7 +1,18 @@
 ---
 import Layout from "../layouts/Layout.astro"
+import Revalidate from "../components/Revalidate"
+import api from "fetch-cache";
 
-return Astro.redirect("/dashboard", 301)
+export const prerender = false
+
+// api('http://localhost:3000/api/articles', {
+//   tags: ['article', 'homepage']
+// })
+// return Astro.redirect("/dashboard", 301)
 ---
 
-<Layout />
+<Layout>
+  <h1>Homepage</h1>
+  <Revalidate tags={['article']} client:load />
+</Layout>
+

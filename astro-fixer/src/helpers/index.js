@@ -1,3 +1,5 @@
+import topics from "../resources/topics.json";
+
 const timer = {};
 
 export function debounce(func, wait = 300, id) {
@@ -34,6 +36,15 @@ export function fixTemporalCoverage(item, field) {
     });
     return acc;
   }, {});
+}
+
+export function fixTopics(item, field) {
+  console.log(item, topics);
+  return item[field].reduce((acc, value) => {
+    if (!topics[value]) return acc;
+    acc.push(topics[value]);
+    return acc;
+  }, []);
 }
 
 export function convertBlobToBase64(blob) {

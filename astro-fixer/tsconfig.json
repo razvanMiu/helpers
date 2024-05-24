@@ -2,6 +2,20 @@
   "extends": "astro/tsconfigs/base",
   "compilerOptions": {
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
-  }
+    "jsxImportSource": "solid-js",
+    "paths": {
+      "fetch-cache": ["./packages/fetch-cache/src"],
+      "fetch-cache/*": ["./packages/fetch-cache/src/*"]
+    }
+  },
+  "include": [
+    "**/*.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.jsx",
+    "src/**/*.astro",
+    "packages/**/*.ts",
+    "astro.config.ts"
+  ],
+  "exclude": ["node_modules", "packages/**/node_modules"]
 }
