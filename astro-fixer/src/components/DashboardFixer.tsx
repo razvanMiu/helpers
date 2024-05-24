@@ -1,22 +1,22 @@
 import { createSignal, onMount } from "solid-js";
 import cx from "classnames";
 
-import { debounce, fixTemporalCoverage, fixTopics } from "../helpers";
-import { defaultDisallowedProperties } from "../constants";
+import { debounce } from "../helpers";
 
-export default function GISMapFixer() {
+const tableauHost = "https://tableau-public.discomap.eea.europa.eu";
+
+const parser = typeof window !== "undefined" && new DOMParser();
+
+export default function DashboardFixer() {
   const [editor, setEditor] = createSignal(null);
   const [fixed, setFixed] = createSignal(false);
   const [data, setData] = createSignal([]);
-  const [disallowedProperties, setDisallowedProperties] = createSignal(
-    defaultDisallowedProperties
-  );
-  const [error, setError] = createSignal({});
+  const [error, setError] = createSignal<any>({});
   let jsoneditorEl;
 
   onMount(() => {
     if (typeof window === "undefined") return;
-    const editor = new window.JSONEditor(jsoneditorEl, {
+    const editor = new (window as any).JSONEditor(jsoneditorEl, {
       onChange: () => {
         debounce(
           () => {
@@ -47,20 +47,30 @@ export default function GISMapFixer() {
     const newData = [];
 
     data().forEach((item) => {
-      // Update properties
-      if (item["@type"] !== "GIS Application") {
+      if (item["@type"] !== "tableau_visualization") {
         return;
       }
-      item["@type"] = "map_interactive";
-      item["maps"] = {
-        dataprotection: {},
-        url: item["arcgis_url"],
+      const dashboardWindow = parser.parseFromString(item.embed, "text/html");
+      // Fix tableau
+      const paramsEl = dashboardWindow.querySelectorAll("param");
+      const params = {};
+      // Get params
+      for (const param of paramsEl) {
+        const name = param.getAttribute("name");
+        const value = decodeURIComponent(param.getAttribute("value"));
+        params[name] = value;
+      }
+      // Get sheetname
+      const [, sheetname] = params["name"]?.split("/") || [];
+      item["tableau_visualization"] = {
+        "@id": item["@id"],
+        url: tableauHost + "/views" + `/${params["name"]}`,
+        hideTabs: params["tabs"] === "no",
+        hideToolbar: params["toolbar"] === "no",
+        toolbarPosition: "Top",
+        sheetname,
       };
-      item["preview_image"] = item["image"];
-      item["temporal_coverage"] = fixTemporalCoverage(item, "temporalCoverage");
-      item["topics"] = fixTopics(item, "themes");
-
-      disallowedProperties().forEach((key) => delete item[key]);
+      delete item.embed;
 
       newData.push(item);
     });
@@ -92,7 +102,7 @@ export default function GISMapFixer() {
   return (
     <div class="dashboard-fixer grid grid-cols-[2fr_1fr] gap-x-8">
       <div class="dashboard-fixer__content">
-        <h2 class="text-2xl mb-2">GIS map application</h2>
+        <h2 class="text-2xl mb-2">Dashboard</h2>
         <div class="mb-2">
           <input
             type="file"
@@ -102,7 +112,12 @@ export default function GISMapFixer() {
             onChange={(event) => {
               const reader = new FileReader();
               reader.onload = (event) => {
-                const data = JSON.parse(event.target.result);
+                let data: any = [];
+                const result = event.target.result;
+                if (typeof result == "string") {
+                  // @ts-ignore
+                  data = JSON.parse(event.target.result) || [];
+                }
                 editor().set({
                   data,
                 });
@@ -136,64 +151,6 @@ export default function GISMapFixer() {
         {error().message && <p class="text-red-500">{error().message}</p>}
         {fixed() && <p class="text-green-500">Ready to download</p>}
         <div ref={jsoneditorEl} id="jsoneditor" class="h-[700px]" />
-      </div>
-      <div class="dashboard-fixer__properties">
-        {!!data().length && !fixed() && (
-          <div class="mb-4">
-            <h2 class="text-2xl mb-2">Disallowed properties</h2>
-            <div class="mb-2">
-              <button
-                onClick={() => {
-                  setDisallowedProperties(Object.keys(data()[0]));
-                }}
-              >
-                Select all
-              </button>{" "}
-              |{" "}
-              <button
-                onClick={() => {
-                  setDisallowedProperties([]);
-                }}
-              >
-                Unselect all
-              </button>{" "}
-              |{" "}
-              <button
-                onClick={() => {
-                  setDisallowedProperties(defaultDisallowedProperties);
-                }}
-              >
-                Select defaults
-              </button>
-            </div>
-            {Object.keys(data()[0]).map((key) => (
-              <>
-                <p>
-                  <input
-                    class="mr-2"
-                    type="checkbox"
-                    id={key}
-                    name={key}
-                    checked={disallowedProperties().includes(key)}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        setDisallowedProperties((properties) => [
-                          ...properties,
-                          key,
-                        ]);
-                      } else {
-                        setDisallowedProperties((properties) =>
-                          properties.filter((item) => item !== key)
-                        );
-                      }
-                    }}
-                  />
-                  {key}
-                </p>
-              </>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

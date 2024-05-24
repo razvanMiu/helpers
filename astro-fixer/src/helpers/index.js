@@ -1,5 +1,3 @@
-import topics from "../resources/topics.json";
-
 const timer = {};
 
 export function debounce(func, wait = 300, id) {
@@ -18,33 +16,6 @@ export async function proxyFetch(url, options = {}) {
     body,
     method: "POST",
   });
-}
-
-export function fixHost(item, oldHost, newHost) {
-  return JSON.parse(JSON.stringify(item).replaceAll(oldHost, newHost));
-}
-
-export function fixTemporalCoverage(item, field) {
-  return item[field].reduce((acc, value) => {
-    if (!acc.temporal) {
-      acc.temporal = [];
-    }
-    if (value < 0) return acc;
-    acc.temporal.push({
-      label: value,
-      value,
-    });
-    return acc;
-  }, {});
-}
-
-export function fixTopics(item, field) {
-  console.log(item, topics);
-  return item[field].reduce((acc, value) => {
-    if (!topics[value]) return acc;
-    acc.push(topics[value]);
-    return acc;
-  }, []);
 }
 
 export function convertBlobToBase64(blob) {
